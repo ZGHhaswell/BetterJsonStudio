@@ -1,0 +1,84 @@
+name: Windows x64 Package
+
+on:
+  push:
+    branches:
+      - codex/windows-x64-build-*
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      CARGO_INCREMENTAL: 0
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Windows x64 package
+        shell: bash
+        run: pnpm tauri build --target x86_64-pc-windows-msvc --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Verify Windows runtime dependencies
+        run: node scripts/check-windows-runtime.mjs src-tauri/target/x86_64-pc-windows-msvc/release/jsonstudio.exe
+
+      - name: Prepare installer and portable package
+        shell: bash
+        run: |
+          BUNDLE_DIR="src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          VERSION="$(node -e "console.log(JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json', 'utf8')).version)")"
+          OUTPUT_DIR="$BUNDLE_DIR/windows-x64"
+          mkdir -p "$OUTPUT_DIR"
+
+          shopt -s nullglob
+          INSTALLERS=(
+            "$BUNDLE_DIR/nsis/Json Studio"*"_x64-setup.exe"
+            "$BUNDLE_DIR/nsis/Json.Studio"*"_x64-setup.exe"
+          )
+          if [ ${#INSTALLERS[@]} -eq 0 ]; then
+            echo "Windows installer not found"
+            exit 1
+          fi
+          cp "${INSTALLERS[0]}" "$OUTPUT_DIR/JsonStudio_${VERSION}_windows_x64-setup.exe"
+
+          PORTABLE_EXE="$BUNDLE_DIR/../jsonstudio.exe"
+          if [ ! -f "$PORTABLE_EXE" ]; then
+            echo "Windows portable executable not found"
+            exit 1
+          fi
+
+          PORTABLE_ROOT="$RUNNER_TEMP/JsonStudio"
+          mkdir -p "$PORTABLE_ROOT"
+          cp "$PORTABLE_EXE" "$PORTABLE_ROOT/JsonStudio.exe"
+          powershell -NoProfile -Command "Compress-Archive -Path '$PORTABLE_ROOT' -DestinationPath '$OUTPUT_DIR/JsonStudio_${VERSION}_windows_x64-portable.zip' -Force"
+
+          ls -lh "$OUTPUT_DIR"
+
+      - name: Upload Windows x64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-package
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/windows-x64/*
+          retention-days: 7
