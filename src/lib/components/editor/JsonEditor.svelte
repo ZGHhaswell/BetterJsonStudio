@@ -6,6 +6,7 @@
   import { fileWatcherService } from '$lib/services/fileWatcher';
   import MonacoEditor from './MonacoEditor.svelte';
   import MonacoDiffEditor from './MonacoDiffEditor.svelte';
+  import SmartRepairDiffView from './SmartRepairDiffView.svelte';
   import ConvertView from './ConvertView.svelte';
   import type ConvertViewType from './ConvertView.svelte';
   import CodeGenView from './CodeGenView.svelte';
@@ -38,6 +39,13 @@
   import { cancelPasteFormat, formatPastedJsonAsync } from '$lib/services/pasteFormatWorker.js';
   import { normalizeLineEndings } from '$lib/services/lineEndings';
   import { normalizeOpenedJson } from '$lib/services/openJsonNormalize.js';
+  import {
+    cancelRepair,
+    createRepairSnapshot,
+    isRepairSnapshotCurrent,
+    runCodexRepair,
+    runLocalRepair,
+  } from '$lib/services/smartRepair.js';
   import { isJsonlFilePath } from '$lib/services/jsonlParser.js';
   import {
     detectJsonDialectAsync,
@@ -72,6 +80,14 @@
     validCount: number;
     invalidCount: number;
     emptyCount: number;
+  };
+  type RepairSnapshot = ReturnType<typeof createRepairSnapshot>;
+  type RepairMode = 'local' | 'codex';
+  type RepairPreview = {
+    originalContent: string;
+    content: string;
+    source: 'local' | 'codex';
+    snapshot: RepairSnapshot;
   };
 
   let content = $state('');
@@ -165,6 +181,11 @@
   let isEditorModelPending = $state(false);
   let editorModelSwitchTimer: ReturnType<typeof setTimeout> | null = null;
   let editorModelSwitchVersion = 0;
+  let activeRepairRequestId = $state<string | null>(null);
+  let activeRepairSnapshot = $state<RepairSnapshot | null>(null);
+  let activeRepairMode = $state<RepairMode | null>(null);
+  let repairPreview = $state<RepairPreview | null>(null);
+  let previousRepairContextIdentity = '';
 
   let jsonToolContent = $derived(
     isDiffMode
@@ -211,6 +232,9 @@
     showTreeView: true,
     showFolderView: true,
     autoSave: false,
+    smartRepairEnabled: false,
+    smartRepairPrivacyAccepted: false,
+    codexCliPath: '',
   });
   
   async function openFilePaths(paths: string[]) {
@@ -750,6 +774,11 @@
       const tabSwitched = oldActiveTabId !== newActiveTabId;
       const contentChangedExternally = prevActiveTabContent !== String(newActiveTabVersion);
       const filePathChanged = prevActiveTabPath !== (currentTab?.filePath ?? null);
+
+      if (contentChangedExternally && !tabSwitched) {
+        repairPreview = null;
+        void cancelActiveRepair('content_changed');
+      }
       
       if (tabSwitched || contentChangedExternally || filePathChanged) {
         const activeContentAlreadyApplied = currentTab
@@ -783,9 +812,55 @@
     isJsonlFileActive && !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode,
   );
   let isMixedLogContent = $derived(logJsonSource === content && logJsonFragments.length > 0);
-  let hasLogJsonFragmentsPanel = $derived(isLogJsonPanelOpen && isMixedLogContent);
+  let isWholeDocumentLogFragment = $derived(
+    logJsonFragments.length === 1 &&
+    logJsonFragments[0].raw.trim() === content.trim(),
+  );
+  let isWholeDocumentJsonLike = $derived.by(() => {
+    const trimmedContent = content.trim();
+    return (
+      (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) ||
+      (trimmedContent.startsWith('[') && trimmedContent.endsWith(']'))
+    );
+  });
+  let hasLogJsonFragmentsPanel = $derived(
+    isLogJsonPanelOpen &&
+    isMixedLogContent &&
+    !(isWholeDocumentLogFragment || isWholeDocumentJsonLike),
+  );
   let usesLogJsonLayout = $derived(hasLogJsonFragmentsPanel || isLogJsonDetectionPending);
+  let showRepairActions = $derived(
+    !isDiffMode &&
+    !isConvertMode &&
+    !isCodegenMode &&
+    !isSchemaMode &&
+    !isJsonlFileActive &&
+    !hasLogJsonFragmentsPanel &&
+    repairPreview === null,
+  );
   let monacoTheme = $derived<EditorTheme>(isDarkMode ? settings.darkTheme : settings.lightTheme);
+
+  $effect(() => {
+    const contextIdentity = [
+      $activeTab?.id ?? '',
+      isDiffMode,
+      isConvertMode,
+      isCodegenMode,
+      isSchemaMode,
+      isJsonlMode ? jsonlViewMode : '',
+      hasLogJsonFragmentsPanel,
+    ].join(':');
+
+    if (!previousRepairContextIdentity) {
+      previousRepairContextIdentity = contextIdentity;
+      return;
+    }
+    if (previousRepairContextIdentity === contextIdentity) return;
+
+    previousRepairContextIdentity = contextIdentity;
+    repairPreview = null;
+    void cancelActiveRepair('context_changed');
+  });
 
   $effect(() => {
     const identity = `${$activeTab?.id ?? ''}:${isJsonlFileActive}`;
@@ -800,6 +875,7 @@
     if (postSwitchWorkFrame !== null) cancelAnimationFrame(postSwitchWorkFrame);
     if (lineCountFrame !== null) cancelAnimationFrame(lineCountFrame);
     if (editorModelSwitchTimer !== null) clearTimeout(editorModelSwitchTimer);
+    void cancelActiveRepair('user');
   });
   $effect(() => {
     if (!showTreeView) {
@@ -865,6 +941,7 @@
   }
 
   function toggleDiffMode() {
+    invalidateRepairContext();
     if (isDiffMode) {
       isDiffMode = false;
       
@@ -1007,6 +1084,7 @@
   }
 
   async function toggleConvertMode() {
+    invalidateRepairContext();
     if (isConvertMode) {
       isConvertMode = false;
       convertInputContent = '';
@@ -1031,6 +1109,7 @@
   }
 
   function toggleCodegenMode() {
+    invalidateRepairContext();
     if (isCodegenMode) {
       handleCodegenJsonOutputActiveChange(false);
       isCodegenMode = false;
@@ -1061,6 +1140,7 @@
   }
 
   async function toggleSchemaMode() {
+    invalidateRepairContext();
     if (isSchemaMode) {
       isSchemaMode = false;
       schemaInputContent = '';
@@ -1103,6 +1183,162 @@
   function showToast(msg: string, type: 'success' | 'error' | 'info' = 'success') {
     toastMsg = msg;
     toastType = type;
+  }
+
+  function captureCurrentRepairSnapshot(): RepairSnapshot | null {
+    const currentTab = $activeTab;
+    const model = monacoEditor?.getEditorInstance()?.getModel();
+    if (!currentTab || !model) return null;
+    if (isEditorModelPending || editorModelKey !== currentTab.id) return null;
+
+    return createRepairSnapshot(
+      currentTab.id,
+      model.uri.toString(),
+      model.getVersionId(),
+      model.getValue(),
+    );
+  }
+
+  function getRepairErrorCode(error: unknown): string {
+    if (!error || typeof error !== 'object' || !('code' in error)) return 'unknown_cli_error';
+    return typeof error.code === 'string' ? error.code : 'unknown_cli_error';
+  }
+
+  function getRepairErrorMessage(error: unknown, mode: RepairMode): string {
+    if (mode === 'local') return $t('repair.localExecutionFailed');
+
+    const code = getRepairErrorCode(error);
+    if (code === 'input_too_large') return $t('repair.inputTooLarge');
+    if (code === 'cli_not_found') return $t('repair.cliNotFound');
+    if (code === 'invalid_cli_path') return $t('repair.invalidCliPath');
+    if (code === 'cli_version_failed') return $t('repair.cliVersionFailed');
+    if (code === 'spawn_failed') return $t('repair.spawnFailed');
+    if (code === 'authentication_failed') return $t('repair.authenticationFailed');
+    if (code === 'network_failed') return $t('repair.networkFailed');
+    if (code === 'quota_or_rate_limited') return $t('repair.quotaFailed');
+    if (code === 'model_failed') return $t('repair.modelFailed');
+    if (code === 'timed_out') return $t('repair.timedOut');
+    if (code === 'cancelled') return $t('repair.cancelled');
+    if (code === 'invalid_agent_output') return $t('repair.invalidOutput');
+    return $t('repair.unknownFailure');
+  }
+
+  async function handleRepair(mode: RepairMode) {
+    if (activeRepairRequestId || repairPreview) return;
+
+    const snapshot = captureCurrentRepairSnapshot();
+    if (!snapshot) {
+      showToast($t('repair.editorUnavailable'), 'info');
+      return;
+    }
+
+    const requestId = crypto.randomUUID();
+    activeRepairRequestId = requestId;
+    activeRepairSnapshot = snapshot;
+    activeRepairMode = mode;
+
+    try {
+      const result = mode === 'local'
+        ? await runLocalRepair({
+          content: snapshot.content,
+          indent: tabSize,
+        })
+        : await runCodexRepair({
+          content: snapshot.content,
+          indent: tabSize,
+          requestId,
+          codexPath: settings.codexCliPath,
+        });
+
+      if (activeRepairRequestId !== requestId) return;
+
+      const currentSnapshot = captureCurrentRepairSnapshot();
+      if (!activeRepairSnapshot || !currentSnapshot ||
+        !isRepairSnapshotCurrent(activeRepairSnapshot, currentSnapshot)) {
+        await cancelActiveRepair('content_changed');
+        return;
+      }
+
+      if (result.status === 'valid') {
+        showToast($t('repair.noRepairNeeded'), 'info');
+        return;
+      }
+      if (result.status === 'unrepairable') {
+        showToast($t('repair.localFailed'), 'info');
+        return;
+      }
+
+      repairPreview = {
+        originalContent: snapshot.content,
+        content: result.content,
+        source: result.source,
+        snapshot,
+      };
+    } catch (error) {
+      if (activeRepairRequestId !== requestId) return;
+      if (getRepairErrorCode(error) === 'cancelled') return;
+      showToast(getRepairErrorMessage(error, mode), 'error');
+    } finally {
+      if (activeRepairRequestId === requestId) {
+        activeRepairRequestId = null;
+        activeRepairSnapshot = null;
+        activeRepairMode = null;
+      }
+    }
+  }
+
+  function handleLocalRepair() {
+    void handleRepair('local');
+  }
+
+  function handleSmartRepair() {
+    if (!settings.smartRepairEnabled || !settings.smartRepairPrivacyAccepted) return;
+    void handleRepair('codex');
+  }
+
+  async function cancelActiveRepair(
+    reason: 'user' | 'content_changed' | 'context_changed',
+  ) {
+    const requestId = activeRepairRequestId;
+    const mode = activeRepairMode;
+    if (!requestId || !mode) return;
+
+    activeRepairRequestId = null;
+    activeRepairSnapshot = null;
+    activeRepairMode = null;
+    await cancelRepair(requestId, mode);
+
+    if (reason === 'content_changed') {
+      showToast($t('repair.contentChanged'), 'info');
+    } else if (reason === 'context_changed') {
+      showToast($t('repair.contextChanged'), 'info');
+    }
+  }
+
+  function invalidateRepairContext() {
+    repairPreview = null;
+    void cancelActiveRepair('context_changed');
+  }
+
+  function applyRepair() {
+    if (!repairPreview) return;
+
+    const currentSnapshot = captureCurrentRepairSnapshot();
+    if (!currentSnapshot || !isRepairSnapshotCurrent(repairPreview.snapshot, currentSnapshot)) {
+      repairPreview = null;
+      showToast($t('repair.contentChanged'), 'info');
+      return;
+    }
+
+    const source = repairPreview.source;
+    monacoEditor?.setValue(repairPreview.content);
+    repairPreview = null;
+    void updateStats();
+    showToast(source === 'local' ? $t('repair.appliedLocal') : $t('repair.appliedCodex'));
+  }
+
+  function discardRepair() {
+    repairPreview = null;
   }
 
   async function openClipboardContent(value: string) {
@@ -1389,6 +1625,7 @@
   }
   
   function handleEditorChange(newValue: string, markModified = true) {
+    if (activeRepairRequestId) void cancelActiveRepair('content_changed');
     const currentTab = $activeTab;
     if (!currentTab) return;
     if (isEditorModelPending || editorModelKey !== currentTab.id) return;
@@ -1426,6 +1663,8 @@
   }
 
   function handleToolbarContentChange(newValue: string) {
+    if (activeRepairRequestId) void cancelActiveRepair('content_changed');
+    repairPreview = null;
     const currentTab = $activeTab;
     setContentState(newValue, { syncRightPanel: true });
     if (!currentTab) return;
@@ -1545,6 +1784,15 @@
     foldEditor={foldEditor}
     foldEditorReadyVersion={isDiffMode ? diffEditorReadyVersion : codegenEditorReadyVersion}
     tabSize={tabSize}
+    showLocalRepair={showRepairActions}
+    showSmartRepair={showRepairActions && (
+      activeRepairMode === 'codex' ||
+      (settings.smartRepairEnabled && settings.smartRepairPrivacyAccepted)
+    )}
+    {activeRepairMode}
+    onLocalRepair={handleLocalRepair}
+    onSmartRepair={handleSmartRepair}
+    onCancelRepair={() => { void cancelActiveRepair('user'); }}
     onToggleDiff={toggleDiffMode}
     onToggleConvert={toggleConvertMode}
     onToggleCodegen={toggleCodegenMode}
@@ -1564,7 +1812,7 @@
     class="json-main-workspace"
     class:resizing-tree-view={isResizingTreeView || isResizingFolderView}
   >
-    {#if !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode && !usesLogJsonLayout}
+    {#if !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode && !usesLogJsonLayout && repairPreview === null}
       <!-- Folder Sidebar Area -->
       {#if showFolderView}
         <div class="json-folder-container" style={`width: ${folderViewWidth}px;`}>
@@ -1602,7 +1850,7 @@
     <!-- Center section: Tab Bar + Editor -->
     <div class="json-editor-left">
       <!-- Tab Bar - show different tab bars based on mode -->
-      {#if !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode && tabsState.tabs.length >= 1}
+      {#if !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode && repairPreview === null && tabsState.tabs.length >= 1}
         <TabBar 
           tabs={tabsState.tabs} 
           activeTabId={tabsState.activeTabId}
@@ -1679,7 +1927,11 @@
             onExit={toggleSchemaMode}
           />
         {:else}
-          <div class="json-editor-workspace">
+          <div
+            class="json-editor-workspace"
+            class:is-repair-previewing={repairPreview !== null}
+            inert={repairPreview !== null}
+          >
             {#if isJsonlMode && jsonlViewMode === 'records'}
               <JsonlView
                 content={content}
@@ -1730,6 +1982,22 @@
           </div>
         {/if}
 
+        {#if repairPreview}
+          <div class="smart-repair-overlay">
+            <SmartRepairDiffView
+              originalContent={repairPreview.originalContent}
+              repairedContent={repairPreview.content}
+              source={repairPreview.source}
+              theme={monacoTheme}
+              fontSize={fontSize}
+              lineHeight={lineHeight}
+              tabSize={tabSize}
+              onApply={applyRepair}
+              onDiscard={discardRepair}
+            />
+          </div>
+        {/if}
+
         {#if toastMsg}
           <JsonEditorToast message={toastMsg} type={toastType} on:close={() => { toastMsg = ''; }} />
         {/if}
@@ -1737,7 +2005,7 @@
     </div>
 
     <!-- Unified Right Section & Toggler -->
-    {#if !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode && !usesLogJsonLayout && !isJsonlFileActive}
+    {#if !isDiffMode && !isConvertMode && !isCodegenMode && !isSchemaMode && !usesLogJsonLayout && !isJsonlFileActive && repairPreview === null}
       
       {#if showTreeView}
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -1819,6 +2087,19 @@
 </div>
 
 <style>
+  .json-editor-workspace.is-repair-previewing {
+    pointer-events: none;
+  }
+
+  .smart-repair-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg-primary);
+  }
+
   .jsonl-source-bar {
     display: flex;
     align-items: center;

@@ -1,10 +1,11 @@
-pub mod json;
-pub mod window;
-pub mod shortcuts;
+pub mod agent;
+pub mod codegen;
+pub mod convert;
+pub mod export_image;
 pub mod file;
 mod file_encoding;
 pub mod file_watcher;
-pub mod convert;
-pub mod codegen;
-pub mod export_image;
+pub mod json;
 pub mod schema;
+pub mod shortcuts;
+pub mod window;

@@ -9,6 +9,9 @@ mod window_bounds;
 use app_state::{
     collect_json_file_args, focus_main_window, get_pending_files, queue_or_emit_open_files,
 };
+use commands::agent::{
+    cancel_agent_task, detect_agent_cli, repair_json_with_agent, select_agent_cli, AgentTaskState,
+};
 use commands::codegen::{code_to_json, json_to_code};
 use commands::convert::{
     csv_to_json, json_to_csv, json_to_toml, json_to_xml, json_to_yaml, toml_to_json, xml_to_json,
@@ -27,6 +30,7 @@ use commands::shortcuts::{
     format_clipboard_and_show, show_main_window, update_global_shortcuts, GlobalShortcutRegistry,
 };
 use commands::window::{desktop_platform, open_devtools, quit_app, restart_app, set_window_theme};
+use tauri::Manager;
 use window_bounds::schedule_main_window_bounds_clamp;
 
 #[tauri::command]
@@ -65,6 +69,7 @@ pub fn run() {
     let app = builder
         .manage(FileWatcherState::new())
         .manage(GlobalShortcutRegistry::default())
+        .manage(AgentTaskState::default())
         .setup(|app| {
             let app_handle = app.handle().clone();
             schedule_main_window_bounds_clamp(&app_handle);
@@ -118,6 +123,10 @@ pub fn run() {
             json_to_code,
             code_to_json,
             export_json_image,
+            detect_agent_cli,
+            select_agent_cli,
+            repair_json_with_agent,
+            cancel_agent_task,
             get_pending_files,
             show_in_folder,
             quit_app,
@@ -128,6 +137,15 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|app_handle, event| {
+        if matches!(
+            event,
+            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+        ) {
+            let handle = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                handle.state::<AgentTaskState>().cancel_all().await;
+            });
+        }
         #[cfg(target_os = "macos")]
         macos_window::handle_run_event(app_handle, &event);
     });
