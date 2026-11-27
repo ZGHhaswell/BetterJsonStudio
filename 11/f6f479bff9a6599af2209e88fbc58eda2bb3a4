@@ -1,0 +1,146 @@
+tests/smartRepair.test.js
+  s_6ed1daea729fe5::t_21ea477914f127 3-5,9,11-13,16-18,24,32-34,38-92,94,98-106,108-109,112-115,122
+  s_6ed1daea729fe5::t_8212c7a7a0cbba 125-159
+  s_cda33fa204321c::t_3f811a4cde0cca 1-2,6-8,10,14-15,19-23,25-31,35-37,93,95-97,107,110-111,116-121,123-124,160-171
+src-tauri/src/commands/agent/mod.rs
+  s_cda33fa204321c::t_1cf49ee442e85e 1
+  s_cda33fa204321c::t_b6b1418e84e440 2-4,10-47,234
+  s_6ed1daea729fe5::t_af24f33ebda708 5,66-73,76,82-90,97-99,104-126,131,233
+  s_cda33fa204321c::t_3608b847b3d608 6,9,57-65,74-75,77-81,91-96,100-103,127-130,132-134,145-150,208-231
+  s_cda33fa204321c::t_687499b9efa89b 7-8,48-56,135-144,151-207
+  s_6ed1daea729fe5::t_f5423c7feb267f 235-249
+  s_cda33fa204321c::t_55b71a97cffcb5 232
+src-tauri/src/commands/mod.rs
+  s_6ed1daea729fe5::t_3c0b2cc633fc31 1-4,8,10-11
+src/lib/stores/settings.ts
+  s_cda33fa204321c::t_a289d4050b3240 42-44,59-61
+src/lib/components/editor/SmartRepairDiffView.svelte
+  s_cda33fa204321c::t_e6b519cb4f1dad 1-30,32-155
+  s_cda33fa204321c::t_95b48397074e01 31
+src/lib/components/editor/MonacoDiffEditor.svelte
+  s_cda33fa204321c::t_e6b519cb4f1dad 33-35,51-53,340-341,345,350
+e2e/smart-json-repair.spec.js
+  s_6ed1daea729fe5::t_f5423c7feb267f 159-185,191,195-205,311-371
+  s_cda33fa204321c::t_0fe5ff6f8afcb4 1-4,7-15,22-74,76-88,90-93,97-101,103-104,266-267,270-283,285-299,301,303-310,375-377,379-380,382-384,389-390
+  s_cda33fa204321c::t_cdbf7fe64aca25 530-533
+  s_6ed1daea729fe5::t_1105eb0cee69b4 94-96
+  s_cda33fa204321c::t_d5a2eab95769e9 5,125-126,241,248-250,260-265
+  s_6ed1daea729fe5::t_0baad0e6011321 207-219,225-227
+  s_6ed1daea729fe5::t_326156ff11c826 16-21,75,89,105-124,127,143,151,206,221,231,234-237,240,252-254,257,268-269,284,300,302,378,381,446,469,491,513-514,516-517,519-522,536
+  s_cda33fa204321c::t_186912559716e5 102,385-388
+  s_6ed1daea729fe5::t_d2cb7c278ce957 128-142,144-150,152-156,238-239
+  s_6ed1daea729fe5::t_37ba96b446cd1f 186-190,192-194
+  s_cda33fa204321c::t_635ceef4cbd151 242-247,251,255-256,258-259
+  s_6ed1daea729fe5::t_1d9073d48374ff 372-374
+  s_cda33fa204321c::t_0ae0d442fe1037 391-445,447-468,470-490,492-512,515,518,523-529,534-535,537-552
+  s_6ed1daea729fe5::t_c02a579a98d63c 6,157-158,220,222-224,228-230,232-233
+src-tauri/src/lib.rs
+  s_6ed1daea729fe5::t_3c0b2cc633fc31 140-143
+  s_cda33fa204321c::t_823a411aa57615 126-127
+  s_cda33fa204321c::t_088154a682cc35 33,144-148
+  s_cda33fa204321c::t_3608b847b3d608 12-14,72,128-129
+src-tauri/src/commands/agent/detection.rs
+  s_cda33fa204321c::t_e1ebc409f6601f 20-23,73
+  s_cda33fa204321c::t_b6b1418e84e440 232-296
+  s_cda33fa204321c::t_687499b9efa89b 1-19,24-72,74-231
+src/lib/workers/jsonRepair.worker.js
+  s_cda33fa204321c::t_dabfdc126b9ab9 1-15
+src/lib/components/editor/JsonEditorToolbar.svelte
+  s_cda33fa204321c::t_e6b519cb4f1dad 238,241,271,274,1157,1161-1165,1169-1173,1175-1176,1178-1185,1552-1558,1560-1568,1671-1674,1676
+  s_cda33fa204321c::t_4fc9a4f4bec69d 509
+  s_6ed1daea729fe5::t_ff8688ee9732cf 237,239-240,270,272-273,1128-1130,1132-1136,1138-1150,1152-1156,1158-1159,1167-1168,1174,1177,1551
+  s_6ed1daea729fe5::t_25d51bc028f022 25,242,275,1131,1137,1151,1160,1166,1559
+  s_cda33fa204321c::t_a7eff867f8725e 1675
+src/lib/services/jsonRepair.js
+  s_cda33fa204321c::t_dabfdc126b9ab9 1-94
+src/lib/services/jsonRepairWorker.js
+  s_cda33fa204321c::t_dabfdc126b9ab9 1-2,11-39
+  s_cda33fa204321c::t_29bff69a13a15c 3-10
+src/lib/services/smartRepair.js
+  s_6ed1daea729fe5::t_f2d6077582e387 83-84,86-87,144-158,161
+  s_cda33fa204321c::t_95b48397074e01 29-35,98
+  s_6ed1daea729fe5::t_e93346106b6151 77-82,85
+  s_6ed1daea729fe5::t_1abb0dc5a32b46 28,94,96-97,100,107-119,143,159
+  s_cda33fa204321c::t_230f171854d29c 69-72
+  s_cda33fa204321c::t_d04749d458641d 12-19,57-65
+  s_cda33fa204321c::t_a289d4050b3240 1-11,20-27,36-56,66-68,73,75,92-93,95,99,101-106,120-142,160,162-165
+  s_cda33fa204321c::t_4fc9a4f4bec69d 74,76,88-91
+src-tauri/Cargo.toml
+  s_cda33fa204321c::t_b6b1418e84e440 33,60-61
+  s_cda33fa204321c::t_87a73736f61257 32
+  s_cda33fa204321c::t_47a92559f0c97f 62
+tests/smartRepairUi.test.js
+  s_cda33fa204321c::t_886083c560766f 1-19
+  s_6ed1daea729fe5::t_25d51bc028f022 21,24-25,27-29,45
+  s_cda33fa204321c::t_b6764f178eac22 20,22-23,26,30-44,46,48
+  s_6ed1daea729fe5::t_f5423c7feb267f 47
+src/lib/components/SmartRepairSettings.svelte
+  s_cda33fa204321c::t_3155de4b21b317 1-549
+tests/jsonRepair.test.js
+  s_cda33fa204321c::t_e40dfe00fecacb 1-33
+src/lib/services/agent.ts
+  s_cda33fa204321c::t_a289d4050b3240 1-118
+src/lib/i18n/locales/zh.ts
+  s_6ed1daea729fe5::t_af24f33ebda708 216
+  s_6ed1daea729fe5::t_1ef1873668252f 50-52,54-56,113,130-131,215,217-218,222
+  s_cda33fa204321c::t_3155de4b21b317 110-112,114-129,132-136
+  s_cda33fa204321c::t_e6b519cb4f1dad 53,208-214,219-221,223-231,233-234
+  s_6ed1daea729fe5::t_25d51bc028f022 232
+  s_cda33fa204321c::t_fed70eab111a34 235
+src/lib/components/editor/JsonEditor.svelte
+  s_cda33fa204321c::t_7297880e56c004 9,42,44-45,48,84,86-91,184-185,187-188,843-850,852-861,863-864,1188-1205,1209-1225,1227-1237,1239-1240,1252-1257,1259-1265,1270-1279,1281-1284,1286-1287,1297-1298,1300-1302,1305-1307,1310-1317,1319,1321-1322,1324-1339,1341-1342,1667,1794,1815,1853,1930-1934,1985-1994,1997-2000,2008,2090-2102
+  s_6ed1daea729fe5::t_951ea623fbea9b 46-47,85,186,829,832-840,1226,1238,1241-1251,1266-1269,1285,1288-1294,1296,1308,1787,1792-1793
+  s_6ed1daea729fe5::t_a0ffd74b82ef0e 819-825
+  s_6ed1daea729fe5::t_af24f33ebda708 777-781,851,1206-1208,1280,1295,1788-1791
+  s_6ed1daea729fe5::t_25d51bc028f022 43,862,878,944,1087,1112,1143,1258,1299,1318,1320,1323,1340,1628,1666,1795,1995-1996
+  s_6ed1daea729fe5::t_f2d6077582e387 1303-1304,1309
+  s_cda33fa204321c::t_7dadf0ddc4d47c 815-818,826-828,830
+  s_cda33fa204321c::t_4fc9a4f4bec69d 235-237
+  s_cda33fa204321c::t_eed983bc295f6e 1343
+src-tauri/src/commands/agent/codex.rs
+  s_cda33fa204321c::t_3608b847b3d608 1-310
+  s_cda33fa204321c::t_1cf49ee442e85e 311-366
+src/lib/i18n/locales/en.ts
+  s_cda33fa204321c::t_3155de4b21b317 110-112,114-129,132-136
+  s_6ed1daea729fe5::t_1ef1873668252f 50-52,54-56,113,130-131,215,217-218,222
+  s_6ed1daea729fe5::t_af24f33ebda708 216
+  s_cda33fa204321c::t_e6b519cb4f1dad 53,208-214,219-221,223-231,233-234
+  s_6ed1daea729fe5::t_25d51bc028f022 232
+  s_cda33fa204321c::t_8781b384624986 235
+e2e/helpers/editorHarness.js
+  s_cda33fa204321c::t_9dda63f09492ff 18-30,50,56,83-102,131-144
+src/lib/components/SettingsPanel.svelte
+  s_cda33fa204321c::t_3155de4b21b317 21,24,29,491-492
+  s_cda33fa204321c::t_a289d4050b3240 51-53
+  s_cda33fa204321c::t_c3d810bbb3ba56 493-494
+tests/diffToolbar.test.js
+  s_cda33fa204321c::t_ed434c53d94a74 28-31
+src/lib/services/logJsonFragments.js
+  s_cda33fa204321c::t_dabfdc126b9ab9 2,241
+src-tauri/Cargo.lock
+  s_cda33fa204321c::t_ea233850d1365f 2246,2267,4943,4945,4949-4959
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "11f6f479bff9a6599af2209e88fbc58eda2bb3a4",
+  "prompts": {},
+  "sessions": {
+    "s_6ed1daea729fe5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21853-0979-7e42-a511-cba7e6e44acd",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "zgh49448 <zgh49448@ly.com>"
+    },
+    "s_cda33fa204321c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21733-b220-7453-a31e-8276c66bcfea",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "zgh49448 <zgh49448@ly.com>"
+    }
+  }
+}
