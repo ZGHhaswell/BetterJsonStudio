@@ -29,7 +29,8 @@ tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
 json5 = "0.4"
-tokio = { version = "1", features = ["time", "sync"] }
+tokio = { version = "1", features = ["time", "sync", "process", "io-util", "fs", "macros"] }
+tempfile = "3"
 serde_yaml = "0.9.34"
 quick-xml = { version = "0.39.2", features = ["serialize"] }
 toml = "1.0.3"
@@ -55,6 +56,9 @@ cocoa = "0.25"
 core-foundation = "0.10"
 core-graphics = "0.24"
 objc = "0.2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-updater = "2"

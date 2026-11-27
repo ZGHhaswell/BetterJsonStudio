@@ -22,7 +22,7 @@
   import { t } from '$lib/i18n';
   import type { EditorTheme } from '$lib/config/monacoThemes';
   import type { Window as TauriWindow } from '@tauri-apps/api/window';
-  import { FileOutput, FilePlus2, Save as SaveIcon } from '@lucide/svelte';
+  import { FileOutput, FilePlus2, Save as SaveIcon, Square, WandSparkles, Wrench } from '@lucide/svelte';
   import type MonacoEditor from './MonacoEditor.svelte';
   import { folderStore } from '$lib/stores/folder';
   import {
@@ -234,6 +234,12 @@
     foldEditor,
     foldEditorReadyVersion,
     tabSize,
+    showLocalRepair,
+    showSmartRepair,
+    activeRepairMode,
+    onLocalRepair,
+    onSmartRepair,
+    onCancelRepair,
     onToggleDiff,
     onToggleConvert,
     onToggleCodegen,
@@ -261,6 +267,12 @@
     foldEditor: JsonEditorTarget | null;
     foldEditorReadyVersion: number;
     tabSize: number;
+    showLocalRepair: boolean;
+    showSmartRepair: boolean;
+    activeRepairMode: 'local' | 'codex' | null;
+    onLocalRepair: () => void;
+    onSmartRepair: () => void;
+    onCancelRepair: () => void;
     onToggleDiff: () => void;
     onToggleConvert: () => void;
     onToggleCodegen: () => void;
@@ -494,6 +506,7 @@
   let appSettings = $state<import('$lib/stores/settings').AppSettings>({
     isDarkMode: false, darkTheme: 'one-dark', lightTheme: 'vs',
     language: 'zh', fontSize: 13, lineHeight: 20, tabSize: 2, showTreeView: true, showFolderView: true, autoSave: false,
+    smartRepairEnabled: false, smartRepairPrivacyAccepted: false, codexCliPath: '',
   });
 
   $effect(() => {
@@ -1112,6 +1125,64 @@
           {/if}
         </button>
 
+        {#if showLocalRepair}
+          {#if activeRepairMode === 'local'}
+            <button class="toolbar-btn repair-btn" type="button" disabled>
+              <span class="repair-spinner" aria-hidden="true"></span>
+              {$t('toolbar.localRepairing')}
+            </button>
+            <button
+              class="toolbar-icon-btn smart-repair-cancel"
+              type="button"
+              onclick={onCancelRepair}
+              use:tooltip={$t('toolbar.cancelRepair')}
+              aria-label={$t('toolbar.cancelRepair')}
+            >
+              <Square class="toolbar-icon" size={14} aria-hidden="true" />
+            </button>
+          {:else}
+            <button
+              class="toolbar-btn repair-btn"
+              type="button"
+              onclick={onLocalRepair}
+              disabled={isProcessing || !hasJsonContent || activeRepairMode !== null}
+              use:tooltip={$t('toolbar.localRepairTooltip')}
+            >
+              <Wrench class="toolbar-icon" size={15} aria-hidden="true" />
+              {$t('toolbar.localRepair')}
+            </button>
+          {/if}
+        {/if}
+
+        {#if showSmartRepair}
+          {#if activeRepairMode === 'codex'}
+            <button class="toolbar-btn repair-btn" type="button" disabled>
+              <span class="repair-spinner" aria-hidden="true"></span>
+              {$t('toolbar.smartRepairing')}
+            </button>
+            <button
+              class="toolbar-icon-btn smart-repair-cancel"
+              type="button"
+              onclick={onCancelRepair}
+              use:tooltip={$t('toolbar.cancelRepair')}
+              aria-label={$t('toolbar.cancelRepair')}
+            >
+              <Square class="toolbar-icon" size={14} aria-hidden="true" />
+            </button>
+          {:else}
+            <button
+              class="toolbar-btn repair-btn"
+              type="button"
+              onclick={onSmartRepair}
+              disabled={isProcessing || !hasJsonContent || activeRepairMode !== null}
+              use:tooltip={$t('toolbar.smartRepairTooltip')}
+            >
+              <WandSparkles class="toolbar-icon" size={15} aria-hidden="true" />
+              {$t('toolbar.smartRepair')}
+            </button>
+          {/if}
+        {/if}
+
         <div class="toolbar-transform-more-wrap" bind:this={transformMoreMenuEl}>
           <button
             class="toolbar-icon-btn"
@@ -1477,6 +1548,24 @@
     background: var(--accent-glow);
   }
 
+  .repair-btn {
+    min-width: 88px;
+  }
+
+  .smart-repair-cancel {
+    color: var(--error);
+  }
+
+  .repair-spinner {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    border: 2px solid color-mix(in srgb, var(--text-tertiary) 45%, transparent);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: smart-repair-spin 0.8s linear infinite;
+  }
+
   .toolbar-icon-btn {
     width: 26px;
     height: 26px;
@@ -1577,6 +1666,12 @@
     to {
       opacity: 1;
       transform: translate(-50%, 0);
+    }
+  }
+
+  @keyframes smart-repair-spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 </style>

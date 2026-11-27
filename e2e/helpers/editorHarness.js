@@ -15,7 +15,19 @@ function emptyStats() {
 }
 
 export async function installTauriEditorHarness(page, content = '', options = {}) {
-  await page.addInitScript(({ tabStateKey, settingsKey, initialContent, stats, showTreeView, isTauri, desktopPlatform, fileName, filePath }) => {
+  await page.addInitScript(({
+    tabStateKey,
+    settingsKey,
+    initialContent,
+    stats,
+    showTreeView,
+    isTauri,
+    desktopPlatform,
+    fileName,
+    filePath,
+    savedSettings,
+    agentScenario,
+  }) => {
     localStorage.setItem(tabStateKey, JSON.stringify({
       tabs: [{
         id: 'editor-test-tab',
@@ -35,11 +47,13 @@ export async function installTauriEditorHarness(page, content = '', options = {}
       showFolderView: false,
       autoSave: false,
       isDarkMode: false,
+      ...savedSettings,
     }));
 
     window.isTauri = isTauri;
     window.__JSON_STUDIO_OPENED_URLS__ = [];
     window.__JSON_STUDIO_WINDOW_COMMANDS__ = [];
+    window.__SMART_REPAIR_CALLS__ = [];
 
     let callbackId = 0;
     const callbacks = new Map();
@@ -66,6 +80,26 @@ export async function installTauriEditorHarness(page, content = '', options = {}
         return path;
       },
       async invoke(command, args) {
+        if (command === 'detect_agent_cli') {
+          window.__SMART_REPAIR_CALLS__.push({ command, args });
+          return agentScenario.detectStatus;
+        }
+        if (command === 'select_agent_cli') {
+          window.__SMART_REPAIR_CALLS__.push({ command, args });
+          return agentScenario.selectedPath;
+        }
+        if (command === 'repair_json_with_agent') {
+          window.__SMART_REPAIR_CALLS__.push({ command, args });
+          if (agentScenario.delayMs) {
+            await new Promise(resolve => setTimeout(resolve, agentScenario.delayMs));
+          }
+          if (agentScenario.error) throw agentScenario.error;
+          return { repairedJson: agentScenario.repairedJson };
+        }
+        if (command === 'cancel_agent_task') {
+          window.__SMART_REPAIR_CALLS__.push({ command, args });
+          return true;
+        }
         if (command === 'desktop_platform') return desktopPlatform;
         if (command.startsWith('plugin:window|')) {
           window.__JSON_STUDIO_WINDOW_COMMANDS__.push(command);
@@ -94,6 +128,20 @@ export async function installTauriEditorHarness(page, content = '', options = {}
     desktopPlatform: options.desktopPlatform ?? 'macos',
     fileName: options.fileName ?? 'Editor Test',
     filePath: options.filePath ?? null,
+    savedSettings: options.settings ?? {},
+    agentScenario: {
+      detectStatus: options.agentScenario?.detectStatus ?? {
+        available: false,
+        path: null,
+        version: null,
+        source: null,
+        error: { code: 'cli_not_found' },
+      },
+      selectedPath: options.agentScenario?.selectedPath ?? null,
+      repairedJson: options.agentScenario?.repairedJson ?? '{}',
+      delayMs: options.agentScenario?.delayMs ?? 0,
+      error: options.agentScenario?.error ?? null,
+    },
   });
 }
 

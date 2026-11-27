@@ -39,6 +39,9 @@ export interface AppSettings {
   showTreeView: boolean;
   showFolderView: boolean;
   autoSave: boolean;
+  smartRepairEnabled: boolean;
+  smartRepairPrivacyAccepted: boolean;
+  codexCliPath: string;
 }
 
 // Default settings
@@ -53,6 +56,9 @@ const defaultSettings: AppSettings = {
   showTreeView: true,
   showFolderView: false,
   autoSave: false,
+  smartRepairEnabled: false,
+  smartRepairPrivacyAccepted: false,
+  codexCliPath: '',
 };
 
 function getSystemLanguage(): Locale {

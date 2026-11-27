@@ -30,6 +30,9 @@
     fontSize = 13,
     lineHeight = 20,
     tabSize = 2,
+    originalLabel = 'JSON A',
+    modifiedLabel = 'JSON B',
+    exitLabel = $t('toolbar.exitDiff'),
     onOriginalChange = (_value: string) => {},
     onModifiedChange = (_value: string) => {},
     onDiffUpdate = (_changes: Monaco.editor.ILineChange[]) => {},
@@ -45,6 +48,9 @@
     fontSize?: number;
     lineHeight?: number;
     tabSize?: number;
+    originalLabel?: string;
+    modifiedLabel?: string;
+    exitLabel?: string;
     onOriginalChange?: (value: string) => void;
     onModifiedChange?: (value: string) => void;
     onDiffUpdate?: (changes: Monaco.editor.ILineChange[]) => void;
@@ -331,17 +337,17 @@
         <button
           class="diff-back-btn"
           onclick={onExit}
-          aria-label={$t('toolbar.exitDiff')}
-          title={$t('toolbar.exitDiff')}
+          aria-label={exitLabel}
+          title={exitLabel}
         >
           <ArrowLeft size={16} aria-hidden="true" />
         </button>
-        <span class="diff-pane-badge">JSON A</span>
+        <span class="diff-pane-badge">{originalLabel}</span>
       </div>
       <span class="diff-pane-indicator" aria-hidden="true"></span>
     </div>
     <div class="diff-pane-header" class:is-active={activeSide === 'modified'}>
-      <span class="diff-pane-badge">JSON B</span>
+      <span class="diff-pane-badge">{modifiedLabel}</span>
       <span class="diff-pane-indicator" aria-hidden="true"></span>
     </div>
   </div>

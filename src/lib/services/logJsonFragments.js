@@ -1,5 +1,5 @@
-import { jsonrepair } from 'jsonrepair';
 import { parseBigInt, stringifyBigInt } from '../utils/jsonBigInt.js';
+import { tryRepairJsonLocally } from './jsonRepair.js';
 import {
   findGoMapLiteralOpener,
   formatPrintedStructure,
@@ -238,13 +238,7 @@ function tryFormatJson(value, indent) {
  * @returns {string | null}
  */
 function tryRepair(value, indent) {
-  if (hasAmbiguousCommentInBareValue(value)) return null;
-  try {
-    const repaired = jsonrepair(value);
-    return stringifyBigInt(parseBigInt(repaired), null, indent);
-  } catch {
-    return null;
-  }
+  return tryRepairJsonLocally(value, indent);
 }
 
 /**
@@ -278,61 +272,6 @@ function hasJson5Syntax(value) {
     /,\s*[}\]]/.test(value) ||
     /\/\/|\/\*/.test(value)
   );
-}
-
-/**
- * `jsonrepair` treats `//` and `/*` as comments. In a malformed log value
- * such as `{message:use // as text}`, that would silently discard data.
- * Reject only comments that follow a non-JSON bare value; comments after a
- * real scalar or between fields remain supported.
- *
- * @param {string} value
- */
-function hasAmbiguousCommentInBareValue(value) {
-  let quote = null;
-  let escaped = false;
-  let bareValueStart = null;
-
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (quote) {
-      if (escaped) escaped = false;
-      else if (char === '\\') escaped = true;
-      else if (char === quote) quote = null;
-      continue;
-    }
-    if (char === '"' || char === "'") {
-      quote = char;
-      bareValueStart = null;
-      continue;
-    }
-    if (char === ':') {
-      bareValueStart = index + 1;
-      continue;
-    }
-    if ('{[,\n'.includes(char) || '}]'.includes(char)) {
-      bareValueStart = null;
-      continue;
-    }
-    if (char !== '/' || !['/', '*'].includes(value[index + 1])) continue;
-
-    const prefix =
-      bareValueStart === null ? '' : value.slice(bareValueStart, index).trim();
-    if (prefix && !isJsonLikeBareScalar(prefix)) return true;
-    if (value[index + 1] === '*') {
-      const close = value.indexOf('*/', index + 2);
-      if (close === -1) return false;
-      bareValueStart = null;
-      index = close + 1;
-    } else {
-      const lineEnd = value.indexOf('\n', index + 2);
-      if (lineEnd === -1) break;
-      bareValueStart = null;
-      index = lineEnd;
-    }
-  }
-
-  return false;
 }
 
 /**

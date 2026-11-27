@@ -25,8 +25,10 @@ test('diff mode exposes the shared toolbar for the active editor side', async ()
   assert.match(diffEditor, /export function getEditorInstance\(\)/);
   assert.match(diffEditor, /class="diff-pane-header"/);
   assert.match(diffEditor, /class="diff-back-btn"/);
-  assert.match(diffEditor, /class="diff-pane-badge">JSON A<\/span>/);
-  assert.match(diffEditor, /class="diff-pane-badge">JSON B<\/span>/);
+  assert.match(diffEditor, /originalLabel = 'JSON A'/);
+  assert.match(diffEditor, /modifiedLabel = 'JSON B'/);
+  assert.match(diffEditor, /class="diff-pane-badge">\{originalLabel\}<\/span>/);
+  assert.match(diffEditor, /class="diff-pane-badge">\{modifiedLabel\}<\/span>/);
   assert.match(diffEditor, /flex: 0 0 40px/);
   assert.doesNotMatch(diffEditor, /diff-side-label/);
   assert.doesNotMatch(diffEditor, /\$t\('diff\.(original|modified)'\)/);

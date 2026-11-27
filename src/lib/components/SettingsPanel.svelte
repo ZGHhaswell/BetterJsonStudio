@@ -18,13 +18,15 @@
   import { formatAppVersion } from '$lib/services/appMetadata.js';
   import { t, availableLocales, localeNames, type Locale } from '$lib/i18n';
   import AppResourceLinks from './AppResourceLinks.svelte';
+  import SmartRepairSettings from './SmartRepairSettings.svelte';
   import ShortcutRecorder from './ShortcutRecorder.svelte';
 
-  type SettingsTab = 'appearance' | 'editor' | 'shortcuts' | 'application';
+  type SettingsTab = 'appearance' | 'editor' | 'smartRepair' | 'shortcuts' | 'application';
 
   const settingsTabs: Array<{ id: SettingsTab; labelKey: string }> = [
     { id: 'appearance', labelKey: 'settings.appearance' },
     { id: 'editor', labelKey: 'settings.editor' },
+    { id: 'smartRepair', labelKey: 'settings.smartRepair' },
     { id: 'shortcuts', labelKey: 'settings.shortcuts' },
     { id: 'application', labelKey: 'settings.application' },
   ];
@@ -46,6 +48,9 @@
     showTreeView: true,
     showFolderView: true,
     autoSave: false,
+    smartRepairEnabled: false,
+    smartRepairPrivacyAccepted: false,
+    codexCliPath: '',
   });
   
   $effect(() => {
@@ -481,6 +486,10 @@
             </div>
           </div>
         </section>
+        {/if}
+
+        {#if activeTab === 'smartRepair'}
+          <SmartRepairSettings />
         {/if}
 
         {#if activeTab === 'application'}
