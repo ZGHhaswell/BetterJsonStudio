@@ -36,7 +36,8 @@ If you like JsonStudio, please give it a star [⭐](https://github.com/sundegan/
 
 JsonStudio is built for JSON in real development work: API requests and responses, deeply nested data, escaped strings, JSON5-like snippets, JSONL/NDJSON, and log lines where plain text and JSON are mixed together.
 
-- **Local-first**: works offline, offers convenient keyboard shortcuts, and keeps sensitive data on your machine.
+- **Local-first**: works offline, offers convenient keyboard shortcuts, and processes data on your machine unless you explicitly use the optional Codex smart repair.
+- **Smart repair**: fix common JSON syntax problems locally and offline, or optionally use Codex CLI for more complex invalid JSON, with a diff preview before applying changes.
 - **Flexible input**: handles standard JSON, JSON5-like snippets, escaped JSON strings, repairable JSON fragments, JSONL/NDJSON, and mixed log text.
 - **Visual editing**: edit and reorganize data in Tree View, or inspect arrays in Grid View.
 - **Daily tools in one place**: query, diff, convert, validate with schema, and generate typed code.
