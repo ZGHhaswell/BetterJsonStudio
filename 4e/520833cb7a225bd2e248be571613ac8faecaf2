@@ -1,0 +1,21 @@
+README_ZH.md
+  s_de6efeffe59c9d::t_0229d2429a2a0c 39-40
+README.md
+  s_de6efeffe59c9d::t_0229d2429a2a0c 39-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "4e520833cb7a225bd2e248be571613ac8faecaf2",
+  "prompts": {},
+  "sessions": {
+    "s_de6efeffe59c9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21ad7-9bba-78f1-98a3-7729dc4b21ba",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "zgh49448 <zgh49448@ly.com>"
+    }
+  }
+}
